@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -91,8 +91,9 @@ namespace WebSocketManager
             }
         }
 
-        public async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, string serializedInvocationDescriptor)
+        public async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, byte[] buffer)
         {
+            var serializedInvocationDescriptor = Encoding.UTF8.GetString(buffer, 0, result.Count);
             var invocationDescriptor = JsonConvert.DeserializeObject<InvocationDescriptor>(serializedInvocationDescriptor);
 
             var method = this.GetType().GetMethod(invocationDescriptor.MethodName);
