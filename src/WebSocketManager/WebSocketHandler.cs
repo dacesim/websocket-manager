@@ -13,6 +13,7 @@ namespace WebSocketManager
     public abstract class WebSocketHandler
     {
         protected WebSocketConnectionManager WebSocketConnectionManager { get; set; }
+
         private JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings()
         {
             ContractResolver = new CamelCasePropertyNamesContractResolver()
@@ -30,12 +31,12 @@ namespace WebSocketManager
             {
                 MessageType = MessageType.ConnectionEvent,
                 Data = WebSocketConnectionManager.GetId(socket)
-            }).ConfigureAwait(false);
+            });
         }
 
         public virtual async Task OnDisconnected(WebSocket socket)
         {
-            await WebSocketConnectionManager.RemoveSocket(WebSocketConnectionManager.GetId(socket)).ConfigureAwait(false);
+            await WebSocketConnectionManager.RemoveSocket(WebSocketConnectionManager.GetId(socket));
         }
 
         public async Task SendMessageAsync(WebSocket socket, Message message)
@@ -49,12 +50,12 @@ namespace WebSocketManager
                                                                   count: serializedMessage.Length),
                                    messageType: WebSocketMessageType.Text,
                                    endOfMessage: true,
-                                   cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                                   cancellationToken: CancellationToken.None);
         }
 
         public async Task SendMessageAsync(string socketId, Message message)
         {
-            await SendMessageAsync(WebSocketConnectionManager.GetSocketById(socketId), message).ConfigureAwait(false);
+            await SendMessageAsync(WebSocketConnectionManager.GetSocketById(socketId), message);
         }
 
         public async Task SendMessageToAllAsync(Message message)
@@ -62,7 +63,7 @@ namespace WebSocketManager
             foreach (var pair in WebSocketConnectionManager.GetAll())
             {
                 if (pair.Value.State == WebSocketState.Open)
-                    await SendMessageAsync(pair.Value, message).ConfigureAwait(false);
+                    await SendMessageAsync(pair.Value, message);
             }
         }
 
@@ -78,7 +79,7 @@ namespace WebSocketManager
                 }, _jsonSerializerSettings)
             };
 
-            await SendMessageAsync(socketId, message).ConfigureAwait(false);
+            await SendMessageAsync(socketId, message);
         }
 
         public async Task InvokeClientMethodToAllAsync(string methodName, params object[] arguments)
@@ -86,7 +87,7 @@ namespace WebSocketManager
             foreach (var pair in WebSocketConnectionManager.GetAll())
             {
                 if (pair.Value.State == WebSocketState.Open)
-                    await InvokeClientMethodAsync(pair.Key, methodName, arguments).ConfigureAwait(false);
+                    await InvokeClientMethodAsync(pair.Key, methodName, arguments);
             }
         }
 
@@ -102,7 +103,7 @@ namespace WebSocketManager
                 {
                     MessageType = MessageType.Text,
                     Data = $"Cannot find method {invocationDescriptor.MethodName}"
-                }).ConfigureAwait(false);
+                });
                 return;
             }
 
@@ -116,7 +117,7 @@ namespace WebSocketManager
                 {
                     MessageType = MessageType.Text,
                     Data = $"The {invocationDescriptor.MethodName} method does not take {invocationDescriptor.Arguments.Length} parameters!"
-                }).ConfigureAwait(false);
+                });
             }
 
             catch (ArgumentException e)
@@ -125,7 +126,7 @@ namespace WebSocketManager
                 {
                     MessageType = MessageType.Text,
                     Data = $"The {invocationDescriptor.MethodName} method takes different arguments!"
-                }).ConfigureAwait(false);
+                });
             }
         }
     }
