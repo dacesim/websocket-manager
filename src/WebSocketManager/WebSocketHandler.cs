@@ -42,7 +42,7 @@ namespace WebSocketManager
         {
             if (socket.State != WebSocketState.Open)
                 return;
-            
+
             var serializedMessage = JsonConvert.SerializeObject(message, _jsonSerializerSettings);
             await socket.SendAsync(buffer: new ArraySegment<byte>(array: Encoding.ASCII.GetBytes(serializedMessage),
                                                                   offset: 0,
@@ -61,18 +61,8 @@ namespace WebSocketManager
         {
             foreach (var pair in WebSocketConnectionManager.GetAll())
             {
-                try
-                {
-                    if (pair.Value.State == WebSocketState.Open)
-                        await SendMessageAsync(pair.Value, message).ConfigureAwait(false);
-                }
-                catch (WebSocketException e)
-                {
-                    if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
-                    {
-                        await WebSocketConnectionManager.RemoveSocket(pair.Key);
-                    }
-                }
+                if (pair.Value.State == WebSocketState.Open)
+                    await SendMessageAsync(pair.Value, message).ConfigureAwait(false);
             }
         }
 
@@ -95,18 +85,8 @@ namespace WebSocketManager
         {
             foreach (var pair in WebSocketConnectionManager.GetAll())
             {
-                try
-                {
-                    if (pair.Value.State == WebSocketState.Open)
-                        await InvokeClientMethodAsync(pair.Key, methodName, arguments).ConfigureAwait(false);
-                }
-                catch (WebSocketException e)
-                {
-                    if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
-                    {
-                        await WebSocketConnectionManager.RemoveSocket(pair.Key);
-                    }
-                }
+                if (pair.Value.State == WebSocketState.Open)
+                    await InvokeClientMethodAsync(pair.Key, methodName, arguments).ConfigureAwait(false);
             }
         }
 
@@ -130,7 +110,7 @@ namespace WebSocketManager
             {
                 method.Invoke(this, invocationDescriptor.Arguments);
             }
-            catch (TargetParameterCountException)
+            catch (TargetParameterCountException e)
             {
                 await SendMessageAsync(socket, new Message()
                 {
@@ -139,7 +119,7 @@ namespace WebSocketManager
                 }).ConfigureAwait(false);
             }
 
-            catch (ArgumentException)
+            catch (ArgumentException e)
             {
                 await SendMessageAsync(socket, new Message()
                 {
