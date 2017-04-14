@@ -64,34 +64,24 @@ namespace WebSocketManager
                 ArraySegment<Byte> buffer = new ArraySegment<byte>(new Byte[1024 * 4]);
                 string serializedInvocationDescriptor = null;
                 WebSocketReceiveResult result = null;
-                try
+                using (var ms = new MemoryStream())
                 {
-                    using (var ms = new MemoryStream())
+                    do
                     {
-                        do
-                        {
-                            result = await socket.ReceiveAsync(buffer, CancellationToken.None).ConfigureAwait(false);
-                            ms.Write(buffer.Array, buffer.Offset, result.Count);
-                        }
-                        while (!result.EndOfMessage);
-
-                        ms.Seek(0, SeekOrigin.Begin);
-
-                        using (var reader = new StreamReader(ms, Encoding.UTF8))
-                        {
-                            serializedInvocationDescriptor = await reader.ReadToEndAsync().ConfigureAwait(false);
-                        }
+                        result = await socket.ReceiveAsync(buffer, CancellationToken.None).ConfigureAwait(false);
+                        ms.Write(buffer.Array, buffer.Offset, result.Count);
                     }
+                    while (!result.EndOfMessage);
 
-                    handleMessage(result, serializedInvocationDescriptor);
-                }
-                catch (WebSocketException e)
-                {
-                    if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+                    ms.Seek(0, SeekOrigin.Begin);
+
+                    using (var reader = new StreamReader(ms, Encoding.UTF8))
                     {
-                        socket.Abort();
+                        serializedInvocationDescriptor = await reader.ReadToEndAsync().ConfigureAwait(false);
                     }
                 }
+
+                handleMessage(result, serializedInvocationDescriptor);
             }
         }
     }
