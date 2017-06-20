@@ -44,10 +44,9 @@ namespace WebSocketManager
                 return;
 
             var serializedMessage = JsonConvert.SerializeObject(message, _jsonSerializerSettings);
-            var encodedMessage = Encoding.UTF8.GetBytes(serializedMessage);
-            await socket.SendAsync(buffer: new ArraySegment<byte>(array: encodedMessage,
+            await socket.SendAsync(buffer: new ArraySegment<byte>(array: Encoding.ASCII.GetBytes(serializedMessage),
                                                                   offset: 0,
-                                                                  count: encodedMessage.Length),
+                                                                  count: serializedMessage.Length),
                                    messageType: WebSocketMessageType.Text,
                                    endOfMessage: true,
                                    cancellationToken: CancellationToken.None).ConfigureAwait(false);
@@ -91,6 +90,44 @@ namespace WebSocketManager
             }
         }
 
+        public async Task SendMessageToGroupAsync(string groupID, Message message)
+        {
+            var sockets = WebSocketConnectionManager.GetAllFromGroup(groupID);
+            if (sockets != null)
+            {
+                foreach (var socket in sockets)
+                {
+                    await SendMessageAsync(socket, message);
+                }
+            }
+        }
+
+        public async Task SendMessageToGroupAsync(string groupID, Message message, string except)
+        {
+            var sockets = WebSocketConnectionManager.GetAllFromGroup(groupID);
+            if (sockets != null)
+            {
+                foreach (var id in sockets)
+                {
+                    if(id != except)
+                        await SendMessageAsync(id, message);
+                }
+            }
+        }
+
+        public async Task InvokeClientMethodToGroupAsync(string groupID, string methodName, string except, params object[] arguments)
+        {
+            var sockets = WebSocketConnectionManager.GetAllFromGroup(groupID);
+            if(sockets != null)
+            {
+                foreach (var id in sockets)
+                {
+                    if(id != except)
+                        await InvokeClientMethodAsync(id, methodName, arguments);
+                }
+            }
+        }
+
         public async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, string serializedInvocationDescriptor)
         {
             var invocationDescriptor = JsonConvert.DeserializeObject<InvocationDescriptor>(serializedInvocationDescriptor);
@@ -111,7 +148,7 @@ namespace WebSocketManager
             {
                 method.Invoke(this, invocationDescriptor.Arguments);
             }
-            catch (TargetParameterCountException)
+            catch (TargetParameterCountException e)
             {
                 await SendMessageAsync(socket, new Message()
                 {
@@ -120,7 +157,7 @@ namespace WebSocketManager
                 }).ConfigureAwait(false);
             }
 
-            catch (ArgumentException)
+            catch (ArgumentException e)
             {
                 await SendMessageAsync(socket, new Message()
                 {
