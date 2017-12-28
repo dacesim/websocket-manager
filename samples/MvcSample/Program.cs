@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore;
+﻿using System.IO;
+using Microsoft.AspNetCore.Hosting;
 
 namespace MvcSample
 {
@@ -7,14 +7,13 @@ namespace MvcSample
     {
         public static void Main(string[] args)
         {
-            BuildWebHost(args).Run();
-        }
+            var host = new WebHostBuilder()
+                .UseKestrel()
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseStartup<Startup>()
+                .Build();
 
-		public static IWebHost BuildWebHost(string[] args)
-		{
-			return WebHost.CreateDefaultBuilder(args)
-					.UseStartup<Startup>()
-					.Build();
-		}
+            host.Run();
+        }
     }
 }
